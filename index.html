@@ -236,8 +236,6 @@ function backupNag(){
   else setStatus("");
 }
 if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
-loadLocal(); render(); backupNag();
-
 /* ---------- cálculo ---------- */
 function sorted(){ return [...state.fills].sort((a,b)=> a.odo-b.odo || a.date.localeCompare(b.date)); }
 
@@ -336,7 +334,8 @@ function renderPainel(){
   const gaps=[]; for(let i=1;i<byDate.length;i++) gaps.push(daysBetween(byDate[i-1].date,byDate[i].date));
   const avgGap = gaps.length? gaps.reduce((a,b)=>a+b,0)/gaps.length : NaN;
   const spentExFirst = state.fills.reduce((a,b)=>a+b.total,0) - byDate[0].total;
-  const perMonth = spentExFirst / spanDays * 30.44;
+  const enough = spanDays >= 14;
+  const perMonth = enough ? spentExFirst / spanDays * 30.44 : NaN;
   const kmPerTank = valid.length? valid.reduce((a,b)=>a+b.km,0)/valid.length : NaN;
   const panelSegs = segs.filter(s=>s.panel && isFinite(s.kml));
   const panelErr = panelSegs.length ? panelSegs.reduce((a,s)=>a+(s.panel/s.kml-1),0)/panelSegs.length*100 : null;
@@ -344,8 +343,8 @@ function renderPainel(){
   let h = `<h2>Visão geral</h2><div class="kpis">
     <div class="kpi"><div class="v num">${nf(kmlAll,1)}</div><div class="k">km/l médio real</div></div>
     <div class="kpi"><div class="v num">${brl(costSegs)}</div><div class="k">custo por km</div></div>
-    <div class="kpi"><div class="v num">${brl(perMonth)}</div><div class="k">gasto por mês</div></div>
-    <div class="kpi"><div class="v num">${nf(kmTotal/spanDays*30.44,0)} km</div><div class="k">rodados por mês</div></div>
+    <div class="kpi"><div class="v num">${brl(perMonth)}</div><div class="k">gasto por mês${enough?"":" (após 2 semanas)"}</div></div>
+    <div class="kpi"><div class="v num">${enough ? nf(kmTotal/spanDays*30.44,0)+" km" : "–"}</div><div class="k">rodados por mês</div></div>
     <div class="kpi"><div class="v num">${nf(avgGap,1)} dias</div><div class="k">entre abastecimentos</div></div>
     <div class="kpi"><div class="v num">${nf(kmPerTank,0)} km</div><div class="k">por tanque cheio</div></div>
     <div class="kpi"><div class="v num">${brl(totalSpent)}</div><div class="k">gasto total</div></div>
@@ -520,6 +519,9 @@ function go(v){
   window.scrollTo(0,0);
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
+
+/* ---------- início ---------- */
+loadLocal(); render(); backupNag();
 })();
 </script>
 <script>
