@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Consumo do carro</title>
+<meta name="theme-color" content="#1C2321">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Consumo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0EC; --surface:#FFFFFF; --ink:#1C2321; --muted:#5E6864; --line:#D5DAD6;
+  --etanol:#2F8A4E; --gasolina:#C7781A; --aditivada:#2F62B0; --premium:#8A3FA0;
+  --good:#2F8A4E; --warn:#B4541C; --chip:#E3E7E3;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151A19; --surface:#1F2624; --ink:#E7ECE9; --muted:#9AA5A0; --line:#2F3835;
+    --etanol:#5CC27F; --gasolina:#F0A245; --aditivada:#6E9BE6; --premium:#C07AD6;
+    --good:#5CC27F; --warn:#F08A55; --chip:#2A3230; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151A19; --surface:#1F2624; --ink:#E7ECE9; --muted:#9AA5A0; --line:#2F3835;
+  --etanol:#5CC27F; --gasolina:#F0A245; --aditivada:#6E9BE6; --premium:#C07AD6;
+  --good:#5CC27F; --warn:#F08A55; --chip:#2A3230; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 96px}
+.num{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+h1{font:700 30px/1.05 "Barlow Condensed","Arial Narrow",sans-serif;margin:8px 0 2px;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+h2{font:600 22px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:24px 0 10px}
+.status{font-size:13px;color:var(--muted);margin-bottom:8px;min-height:18px}
+
+/* veredito */
+.verdict{background:var(--surface);border-left:6px solid var(--muted);border-radius:6px;padding:16px 16px 14px;margin-bottom:8px}
+.verdict .big{font:700 40px/1 "Barlow Condensed","Arial Narrow",sans-serif;margin:4px 0 6px}
+.verdict p{margin:4px 0;font-size:15px}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.calc label{font-size:13px;color:var(--muted)}
+
+/* nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;max-width:186px;background:none;border:0;color:var(--muted);font:600 15px Barlow,sans-serif;padding:14px 4px;cursor:pointer;border-top:3px solid transparent}
+nav button[aria-current="page"]{color:var(--ink);border-top-color:var(--ink)}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--aditivada);outline-offset:2px}
+
+/* form */
+form{background:var(--surface);border-radius:6px;padding:16px}
+.field{margin-bottom:14px}
+.field>label,.field>.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px}
+input,select{width:100%;font:500 18px Barlow,sans-serif;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.row3 label{font-size:12.5px;color:var(--muted);display:block;margin-bottom:4px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{flex:1 1 auto;min-width:70px;padding:10px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer}
+.seg button[aria-pressed="true"]{color:#fff;border-color:transparent}
+.seg button[data-v="etanol"][aria-pressed="true"]{background:var(--etanol)}
+.seg button[data-v="gasolina"][aria-pressed="true"]{background:var(--gasolina)}
+.seg button[data-v="aditivada"][aria-pressed="true"]{background:var(--aditivada)}
+.seg button[data-v="premium"][aria-pressed="true"]{background:var(--premium)}
+.seg.neutral button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.toggle{display:flex;align-items:center;gap:10px;font-weight:600}
+.toggle input{width:22px;height:22px}
+.primary{width:100%;padding:14px;border:0;border-radius:6px;background:var(--ink);color:var(--bg);font:700 18px Barlow,sans-serif;cursor:pointer}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 12px;font:600 14px Barlow,sans-serif;cursor:pointer}
+.err{color:var(--warn);font-size:14px;margin:8px 0 0;min-height:1em}
+.ok{color:var(--good);font-size:14px;margin:8px 0 0}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:6px;overflow:hidden}
+.kpi{background:var(--surface);padding:12px}
+.kpi .v{font:600 28px/1.05 "Barlow Condensed","Arial Narrow",sans-serif}
+.kpi .k{font-size:13px;color:var(--muted)}
+.table-wrap{overflow-x:auto;background:var(--surface);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12.5px}
+th:first-child,td:first-child{text-align:left}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.note{font-size:13.5px;color:var(--muted);margin:8px 2px}
+.chart{background:var(--surface);border-radius:6px;padding:12px 8px 6px;overflow-x:auto}
+.empty{background:var(--surface);border-radius:6px;padding:20px;color:var(--muted)}
+
+/* histórico */
+.hist{list-style:none;margin:0;padding:0}
+.hist li{background:var(--surface);border-radius:6px;padding:12px;margin-bottom:8px;border-left:5px solid var(--muted)}
+.hist .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.hist .top b{font:600 19px "Barlow Condensed","Arial Narrow",sans-serif}
+.hist .det{font-size:14px;color:var(--muted)}
+.hist .seg-res{font-size:14.5px;margin-top:4px}
+.tag{font-size:12px;padding:1px 6px;border-radius:4px;background:var(--chip);color:var(--muted);margin-left:4px}
+.hist .del{float:right;margin-top:-2px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Consumo do carro</h1>
+  <p class="sub">Registre cada abastecimento. O consumo real é calculado de tanque cheio a tanque cheio.</p>
+  <div class="status" id="status"></div>
+
+  <!-- PAINEL -->
+  <section id="v-painel">
+    <div class="verdict" id="verdict"></div>
+    <div id="painel-body"></div>
+  </section>
+
+  <!-- ABASTECER -->
+  <section id="v-abastecer" hidden>
+    <h2>Novo abastecimento</h2>
+    <form id="f" novalidate>
+      <div class="field">
+        <span class="lbl">Combustível colocado agora</span>
+        <div class="seg" id="seg-fuel">
+          <button type="button" data-v="etanol">Etanol</button>
+          <button type="button" data-v="gasolina">Gasolina</button>
+          <button type="button" data-v="aditivada">Aditivada</button>
+          <button type="button" data-v="premium">Premium</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="odo">Hodômetro total (km)</label>
+        <input id="odo" class="num" inputmode="numeric" placeholder="ex.: 48230">
+        <div class="hint" id="odo-hint">O número total do painel, não o parcial (trip).</div>
+      </div>
+      <div class="field">
+        <span class="lbl">Valores (preencha 2 dos 3)</span>
+        <div class="row3">
+          <div><label for="price">R$/litro</label><input id="price" class="num" inputmode="decimal" placeholder="5,89"></div>
+          <div><label for="liters">Litros</label><input id="liters" class="num" inputmode="decimal" placeholder="40,2"></div>
+          <div><label for="total">Total R$</label><input id="total" class="num" inputmode="decimal" placeholder="236,78"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="toggle"><input type="checkbox" id="full" checked> Completei o tanque</label>
+        <div class="hint">Só tanques cheios fecham um cálculo. Abastecimento parcial entra na conta do próximo tanque cheio.</div>
+      </div>
+      <div class="field">
+        <label for="panel">Média que o painel mostrava (km/l) <span style="font-weight:400;color:var(--muted)">opcional</span></label>
+        <input id="panel" class="num" inputmode="decimal" placeholder="ex.: 11,4">
+        <div class="hint">Leia antes de abastecer e zere a média em seguida. Serve para medir quanto o painel erra.</div>
+      </div>
+      <div class="field">
+        <span class="lbl">Como rodou desde o último abastecimento</span>
+        <div class="seg neutral" id="seg-trip">
+          <button type="button" data-v="cidade">Cidade</button>
+          <button type="button" data-v="misto">Misto</button>
+          <button type="button" data-v="estrada">Estrada</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="date">Data</label>
+        <input id="date" type="date">
+      </div>
+      <button class="primary" type="submit">Salvar abastecimento</button>
+      <p class="err" id="ferr"></p>
+    </form>
+  </section>
+
+  <!-- HISTÓRICO -->
+  <section id="v-historico" hidden>
+    <h2>Histórico</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <button class="ghost" id="btn-backup">Fazer backup</button>
+      <button class="ghost" id="btn-restore">Restaurar backup</button>
+      <button class="ghost" id="btn-csv">Exportar CSV</button>
+      <input type="file" id="file-restore" accept=".json,application/json" hidden>
+    </div>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</div>
+
+<nav>
+  <button data-view="painel" aria-current="page">Painel</button>
+  <button data-view="abastecer">Abastecer</button>
+  <button data-view="historico">Histórico</button>
+</nav>
+
+<script>
+(function(){
+const FUELS = {
+  etanol:{n:"Etanol",c:"--etanol"},
+  gasolina:{n:"Gasolina comum",c:"--gasolina"},
+  aditivada:{n:"Gasolina aditivada",c:"--aditivada"},
+  premium:{n:"Gasolina premium",c:"--premium"}
+};
+const GAS_TYPES = ["gasolina","aditivada","premium"];
+let state = {fills:[]};
+
+const $ = s => document.querySelector(s);
+
+/* ---------- formatação ---------- */
+const nf = (v,d=1) => (v==null||!isFinite(v)) ? "–" : v.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const brl = v => (v==null||!isFinite(v)) ? "–" : v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const parseNum = s => { if(s==null) return NaN; s=String(s).trim().replace(/\s/g,""); if(!s) return NaN;
+  if(s.includes(",")) s=s.replace(/\./g,"").replace(",","."); return parseFloat(s); };
+const fmtDate = iso => { const [y,m,d]=iso.split("-"); return `${d}/${m}/${y.slice(2)}`; };
+const daysBetween = (a,b) => Math.round((new Date(b+"T12:00")-new Date(a+"T12:00"))/86400000);
+const color = f => `var(${FUELS[f]?.c||"--muted"})`;
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- armazenamento (só neste aparelho) ---------- */
+function setStatus(t){ $("#status").textContent = t; }
+async function persist(){
+  try{ localStorage.setItem("consumo-carro", JSON.stringify(state)); localStorage.setItem("consumo-carro-saved", new Date().toISOString()); }
+  catch(e){ setStatus("Não foi possível salvar neste navegador. Faça um backup agora."); }
+  backupNag();
+}
+function loadLocal(){
+  try{ const r = localStorage.getItem("consumo-carro"); if(r){ const d=JSON.parse(r); if(d&&Array.isArray(d.fills)) state=d; } }catch(e){}
+}
+function backupNag(){
+  let last=null; try{ last=localStorage.getItem("consumo-carro-backup"); }catch(e){}
+  const n=state.fills.length;
+  if(!n){ setStatus(""); return; }
+  const days = last ? Math.floor((Date.now()-new Date(last))/86400000) : null;
+  if(days===null) setStatus("Dados salvos só neste celular. Faça um backup em Histórico.");
+  else if(days>30) setStatus(`Último backup há ${days} dias. Vale fazer outro em Histórico.`);
+  else setStatus("");
+}
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+loadLocal(); render(); backupNag();
+
+/* ---------- cálculo ---------- */
+function sorted(){ return [...state.fills].sort((a,b)=> a.odo-b.odo || a.date.localeCompare(b.date)); }
+
+function segments(){
+  const f = sorted(), out = [];
+  let A = -1, liters = 0, partialFuels = new Set();
+  for(let i=0;i<f.length;i++){
+    const cur = f[i];
+    if(A<0){ if(cur.full) A=i; continue; }
+    liters += cur.liters;
+    if(!cur.full){ partialFuels.add(cur.fuel); continue; }
+    const a = f[A], km = cur.odo - a.odo;
+    const mixed = [...partialFuels].some(x=>x!==a.fuel);
+    const transition = A>0 && f[A-1].fuel!==a.fuel;
+    const kml = km>0 && liters>0 ? km/liters : NaN;
+    out.push({
+      fromId:a.id, toId:cur.id, fuel:a.fuel, km, liters, kml,
+      price:a.price, rkm: isFinite(kml)? a.price/kml : NaN,
+      days: daysBetween(a.date,cur.date), start:a.date, end:cur.date,
+      panel: cur.panel||null, trip: cur.trip||null,
+      clean: !mixed && !transition && km>0, mixed, transition
+    });
+    A = i; liters = 0; partialFuels = new Set();
+  }
+  return out;
+}
+
+function statsByFuel(segs){
+  const s = {};
+  for(const g of segs){ if(!g.clean) continue;
+    const o = s[g.fuel] ||= {n:0,km:0,L:0,cost:0,vals:[]};
+    o.n++; o.km+=g.km; o.L+=g.liters; o.cost+=g.liters*g.price; o.vals.push(g.kml);
+  }
+  for(const k in s){ const o=s[k]; o.kml=o.km/o.L; o.rkm=o.cost/o.km;
+    const m=o.vals.reduce((a,b)=>a+b,0)/o.n; o.sd = o.n>1? Math.sqrt(o.vals.reduce((a,b)=>a+(b-m)**2,0)/(o.n-1)) : NaN; }
+  return s;
+}
+function lastPrice(fuel){ const f=[...state.fills].filter(x=>x.fuel===fuel).sort((a,b)=>b.date.localeCompare(a.date)||b.odo-a.odo); return f[0]?.price; }
+
+/* ---------- render ---------- */
+function render(){ renderPainel(); renderHist(); }
+
+let calcPrices = {etanol:null, gas:null};
+function renderVerdict(st){
+  const v = $("#verdict");
+  const e = st.etanol;
+  const gasKey = GAS_TYPES.filter(k=>st[k]).sort((a,b)=>st[b].n-st[a].n)[0];
+  const g = gasKey ? st[gasKey] : null;
+  const pe = calcPrices.etanol ?? lastPrice("etanol");
+  const pg = calcPrices.gas ?? lastPrice(gasKey||"gasolina");
+  let ratio = (e && g) ? e.kml/g.kml : 0.70;
+  const own = !!(e && g);
+  let head="", body="", border="var(--muted)";
+  if(pe && pg){
+    const rel = pe/pg;
+    const etanolWins = rel < ratio;
+    head = etanolWins ? "Abasteça etanol" : "Abasteça gasolina";
+    border = etanolWins ? "var(--etanol)" : "var(--gasolina)";
+    const ce = own ? pe/e.kml : null, cg = own ? pg/g.kml : null;
+    body = `<p>Etanol está a <b class="num">${nf(rel*100,1)}%</b> do preço da gasolina. No seu carro, compensa abaixo de <b class="num">${nf(ratio*100,1)}%</b>.</p>`;
+    if(own) body += `<p>Custo por km: etanol <b class="num">${brl(ce)}</b>, ${FUELS[gasKey].n.toLowerCase()} <b class="num">${brl(cg)}</b>. Em 1.000 km, a diferença é de <b class="num">${brl(Math.abs(ce-cg)*1000)}</b>.</p>`;
+    if(Math.abs(rel-ratio) < 0.02) body += `<p class="note">Empate técnico: a diferença está dentro da variação normal de consumo.</p>`;
+  } else {
+    head = "Faltam preços";
+    body = `<p>Digite abaixo o preço atual do etanol e da gasolina no posto.</p>`;
+  }
+  if(!own) body += `<p class="note">Usando a regra genérica de 70% até existir pelo menos um tanque cheio limpo de etanol e um de gasolina.</p>`;
+  else if(e.n<3 || g.n<3) body += `<p class="note">Base ainda pequena (${e.n} tanque(s) de etanol, ${g.n} de gasolina). Com 3 ou mais de cada, a paridade fica confiável.</p>`;
+  v.style.borderLeftColor = border;
+  v.innerHTML = `<div class="big">${head}</div>${body}
+    <div class="calc">
+      <div><label for="cp-e">Etanol hoje (R$/l)</label><input id="cp-e" class="num" inputmode="decimal" value="${pe?nf(pe,2):""}"></div>
+      <div><label for="cp-g">Gasolina hoje (R$/l)</label><input id="cp-g" class="num" inputmode="decimal" value="${pg?nf(pg,2):""}"></div>
+    </div>`;
+  const bind=(id,key)=>{ const el=$(id); el.addEventListener("change",()=>{ const n=parseNum(el.value); calcPrices[key]= isFinite(n)&&n>0 ? n : null; renderVerdict(st); }); };
+  bind("#cp-e","etanol"); bind("#cp-g","gas");
+}
+
+function renderPainel(){
+  const segs = segments(), st = statsByFuel(segs);
+  renderVerdict(st);
+  const P = $("#painel-body");
+  const f = sorted();
+  if(f.length<2 || !segs.length){
+    P.innerHTML = `<div class="empty" style="margin-top:16px">${f.length? "Primeiro abastecimento salvo. Na próxima vez que completar o tanque, o consumo real aparece aqui." : "Nenhum abastecimento ainda. Comece em Abastecer, de preferência completando o tanque."}</div>`;
+    return;
+  }
+  // KPIs gerais
+  const byDate = [...state.fills].sort((a,b)=>a.date.localeCompare(b.date));
+  const totalSpent = state.fills.reduce((a,b)=>a+b.total,0);
+  const kmTotal = f[f.length-1].odo - f[0].odo;
+  const spanDays = Math.max(1, daysBetween(byDate[0].date, byDate[byDate.length-1].date));
+  const valid = segs.filter(s=>isFinite(s.kml));
+  const kmlAll = valid.reduce((a,b)=>a+b.km,0)/valid.reduce((a,b)=>a+b.liters,0);
+  const costSegs = valid.reduce((a,b)=>a+b.liters*b.price,0)/valid.reduce((a,b)=>a+b.km,0);
+  const gaps=[]; for(let i=1;i<byDate.length;i++) gaps.push(daysBetween(byDate[i-1].date,byDate[i].date));
+  const avgGap = gaps.length? gaps.reduce((a,b)=>a+b,0)/gaps.length : NaN;
+  const spentExFirst = state.fills.reduce((a,b)=>a+b.total,0) - byDate[0].total;
+  const perMonth = spentExFirst / spanDays * 30.44;
+  const kmPerTank = valid.length? valid.reduce((a,b)=>a+b.km,0)/valid.length : NaN;
+  const panelSegs = segs.filter(s=>s.panel && isFinite(s.kml));
+  const panelErr = panelSegs.length ? panelSegs.reduce((a,s)=>a+(s.panel/s.kml-1),0)/panelSegs.length*100 : null;
+
+  let h = `<h2>Visão geral</h2><div class="kpis">
+    <div class="kpi"><div class="v num">${nf(kmlAll,1)}</div><div class="k">km/l médio real</div></div>
+    <div class="kpi"><div class="v num">${brl(costSegs)}</div><div class="k">custo por km</div></div>
+    <div class="kpi"><div class="v num">${brl(perMonth)}</div><div class="k">gasto por mês</div></div>
+    <div class="kpi"><div class="v num">${nf(kmTotal/spanDays*30.44,0)} km</div><div class="k">rodados por mês</div></div>
+    <div class="kpi"><div class="v num">${nf(avgGap,1)} dias</div><div class="k">entre abastecimentos</div></div>
+    <div class="kpi"><div class="v num">${nf(kmPerTank,0)} km</div><div class="k">por tanque cheio</div></div>
+    <div class="kpi"><div class="v num">${brl(totalSpent)}</div><div class="k">gasto total</div></div>
+    <div class="kpi"><div class="v num">${nf(kmTotal,0)} km</div><div class="k">registrados</div></div>
+  </div>`;
+
+  // tabela por combustível
+  const keys = Object.keys(FUELS).filter(k=>st[k]);
+  if(keys.length){
+    h += `<h2>Por combustível</h2><div class="table-wrap"><table>
+      <tr><th>Combustível</th><th>Tanques</th><th>km/l</th><th>± var.</th><th>R$/km pago</th><th>R$/km hoje</th></tr>`;
+    for(const k of keys){ const o=st[k], lp=lastPrice(k);
+      h += `<tr><td><span class="dot" style="background:${color(k)}"></span>${FUELS[k].n}</td>
+        <td class="num">${o.n}</td><td class="num">${nf(o.kml,2)}</td><td class="num">${isFinite(o.sd)?nf(o.sd,2):"–"}</td>
+        <td class="num">${brl(o.rkm)}</td><td class="num">${lp?brl(lp/o.kml):"–"}</td></tr>`; }
+    h += `</table></div><p class="note">“R$/km hoje” usa o último preço que você pagou em cada combustível. Só entram tanques limpos: sem mistura de combustível e sem tanque de transição.</p>`;
+
+    // aditivada vs comum
+    for(const k of ["aditivada","premium"]){
+      if(st[k] && st.gasolina){
+        const a=st[k], c=st.gasolina, gain=(a.kml/c.kml-1)*100, priceGap=((lastPrice(k)||a.rkm*a.kml)/(lastPrice("gasolina")||c.rkm*c.kml)-1)*100;
+        const noisy = a.n<3 || c.n<3 || Math.abs(a.kml-c.kml) < Math.max(a.sd||0,c.sd||0);
+        const verdict = noisy ? "Ainda inconclusivo: a diferença está dentro da variação normal entre tanques." :
+          (gain > priceGap ? `Compensa: rende ${nf(gain,1)}% a mais e custa ${nf(priceGap,1)}% a mais.` : `Não compensa: rende ${nf(gain,1)}% a mais, mas custa ${nf(priceGap,1)}% a mais.`);
+        h += `<p class="note"><b style="color:var(--ink)">${FUELS[k].n} × comum:</b> ${verdict}</p>`;
+      }
+    }
+  }
+
+  // painel x real
+  if(panelErr!=null){
+    h += `<h2>Painel × real</h2><p style="margin:0">Em ${panelSegs.length} tanque(s), o painel marcou em média <b class="num">${nf(Math.abs(panelErr),1)}% ${panelErr>=0?"a mais":"a menos"}</b> que o consumo real.${panelErr>3?" Ou seja, o computador de bordo é otimista: não use ele para decidir combustível.":""}</p>`;
+  }
+
+  // por tipo de trajeto
+  const trips = {};
+  for(const s of valid){ if(!s.trip) continue; const o=trips[s.trip]||={km:0,L:0,n:0}; o.km+=s.km; o.L+=s.liters; o.n++; }
+  if(Object.keys(trips).length>1){
+    h += `<h2>Por trajeto</h2><div class="kpis">` + ["cidade","misto","estrada"].filter(t=>trips[t]).map(t=>`<div class="kpi"><div class="v num">${nf(trips[t].km/trips[t].L,1)}</div><div class="k">km/l ${t} (${trips[t].n})</div></div>`).join("") + `</div><p class="note">Misturando combustível e trajeto, a comparação fica enviesada. Compare etanol e gasolina dentro do mesmo tipo de uso.</p>`;
+  }
+
+  // gráfico
+  h += `<h2>km/l por tanque</h2><div class="chart">${chart(valid.slice(-24))}</div>`;
+  P.innerHTML = h;
+}
+
+function chart(segs){
+  if(!segs.length) return "";
+  const W=Math.max(320, segs.length*26+40), H=180, pad=28, bw=Math.min(20,(W-pad-10)/segs.length-6);
+  const max = Math.ceil(Math.max(...segs.map(s=>s.kml))*1.1);
+  let out = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Consumo por tanque">`;
+  for(let t=0;t<=4;t++){ const y=H-20-(H-34)*t/4, val=max*t/4;
+    out += `<line x1="${pad}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${pad-4}" y="${y+4}" font-size="11" fill="var(--muted)" text-anchor="end" font-family="Barlow Condensed,sans-serif">${nf(val,0)}</text>`; }
+  segs.forEach((s,i)=>{ const x=pad+8+i*((W-pad-10)/segs.length), h=(H-34)*s.kml/max, y=H-20-h;
+    out += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="2" fill="${color(s.fuel)}" opacity="${s.clean?1:.35}"><title>${FUELS[s.fuel].n}: ${nf(s.kml,2)} km/l (${fmtDate(s.end)})</title></rect>`;
+    if(segs.length<=14) out += `<text x="${x+bw/2}" y="${H-6}" font-size="10" fill="var(--muted)" text-anchor="middle" font-family="Barlow Condensed,sans-serif">${fmtDate(s.end).slice(0,5)}</text>`; });
+  out += `</svg>`;
+  const legend = Object.keys(FUELS).filter(k=>segs.some(s=>s.fuel===k)).map(k=>`<span style="margin-right:12px;font-size:13px"><span class="dot" style="background:${color(k)}"></span>${FUELS[k].n}</span>`).join("");
+  return out + `<div style="padding:4px 4px 0">${legend}<span style="font-size:13px;color:var(--muted)">barras claras: tanques mistos</span></div>`;
+}
+
+function renderHist(){
+  const list = $("#hist"), segs = segments();
+  const byTo = Object.fromEntries(segs.map(s=>[s.toId,s]));
+  const f = sorted().reverse();
+  if(!f.length){ list.innerHTML = `<li class="empty" style="border:0">Sem registros ainda.</li>`; return; }
+  list.innerHTML = f.map(x=>{
+    const s = byTo[x.id];
+    let res = "";
+    if(s && isFinite(s.kml)){
+      const flags = s.transition? `<span class="tag">transição</span>` : s.mixed? `<span class="tag">misto</span>` : "";
+      res = `<div class="seg-res">Tanque anterior (${FUELS[s.fuel].n.toLowerCase()}): <b class="num">${nf(s.kml,2)} km/l</b>, ${nf(s.km,0)} km em ${s.days} dia(s), ${brl(s.rkm)}/km${s.panel? `, painel ${nf(s.panel,1)}`:""}${flags}</div>`;
+    } else if(!x.full){ res = `<div class="seg-res" style="color:var(--muted)">Parcial: entra na conta do próximo tanque cheio.</div>`; }
+    return `<li style="border-left-color:${color(x.fuel)}">
+      <button class="ghost del" data-del="${esc(x.id)}" aria-label="Apagar registro de ${fmtDate(x.date)}">Apagar</button>
+      <div class="top"><b>${fmtDate(x.date)} · ${FUELS[x.fuel].n}</b></div>
+      <div class="det num">${nf(x.liters,2)} l × ${brl(x.price)} = ${brl(x.total)} · ${nf(x.odo,0)} km${x.full?"":" · parcial"}</div>
+      ${res}</li>`;
+  }).join("");
+}
+
+$("#hist").addEventListener("click", async e=>{
+  const id = e.target.closest("[data-del]")?.dataset.del; if(!id) return;
+  if(!confirm("Apagar este abastecimento? Os cálculos serão refeitos.")) return;
+  state.fills = state.fills.filter(x=>x.id!==id); render(); await persist();
+});
+
+/* ---------- formulário ---------- */
+let fuelSel = null, tripSel = null;
+function segBind(el, cb){ el.addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return;
+  el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false")); cb(b.dataset.v); }); }
+segBind($("#seg-fuel"), v=>{ fuelSel=v; const lp=lastPrice(v); if(lp && !$("#price").value) $("#price").value = nf(lp,2); });
+segBind($("#seg-trip"), v=>tripSel=v);
+$("#seg-fuel").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed","false"));
+$("#seg-trip").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed","false"));
+const today = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+$("#date").value = today();
+
+function prefillOdoHint(){
+  const f = sorted(); const last = f[f.length-1];
+  $("#odo-hint").textContent = last ? `Último registro: ${nf(last.odo,0)} km em ${fmtDate(last.date)}. Use o total do painel, não o parcial.` : "O número total do painel, não o parcial (trip).";
+}
+
+$("#f").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const err = $("#ferr"); err.className="err"; err.textContent="";
+  let price=parseNum($("#price").value), liters=parseNum($("#liters").value), total=parseNum($("#total").value);
+  const odo=parseNum($("#odo").value), panel=parseNum($("#panel").value), date=$("#date").value||today();
+  if(!fuelSel){ err.textContent="Escolha o combustível colocado."; return; }
+  if(!isFinite(odo) || odo<=0){ err.textContent="Informe o hodômetro total em km."; return; }
+  const have=[price,liters,total].filter(v=>isFinite(v)&&v>0).length;
+  if(have<2){ err.textContent="Preencha pelo menos dois entre R$/litro, litros e total."; return; }
+  if(!(isFinite(liters)&&liters>0)) liters = total/price;
+  if(!(isFinite(price)&&price>0)) price = total/liters;
+  if(!(isFinite(total)&&total>0)) total = price*liters;
+  if(price<1 || price>20){ err.textContent="Preço por litro fora do esperado. Confira a vírgula."; return; }
+  const f = sorted(); const last = f[f.length-1];
+  if(last && odo <= last.odo){ err.textContent=`O hodômetro precisa ser maior que o último registro (${nf(last.odo,0)} km).`; return; }
+  if(last && odo - last.odo > 2500){ if(!confirm(`São ${nf(odo-last.odo,0)} km desde o último registro. Está correto?`)) return; }
+  state.fills.push({
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    date, fuel:fuelSel, price:+price.toFixed(3), liters:+liters.toFixed(2), total:+total.toFixed(2),
+    odo:Math.round(odo), full:$("#full").checked,
+    panel: isFinite(panel)&&panel>0 ? panel : null, trip: tripSel
+  });
+  ["#odo","#price","#liters","#total","#panel"].forEach(s=>$(s).value="");
+  $("#full").checked = true; $("#date").value = today();
+  render(); prefillOdoHint();
+  err.className="ok"; err.textContent="Abastecimento salvo.";
+  await persist();
+  setTimeout(()=>go("painel"), 700);
+});
+
+/* ---------- exportar / backup ---------- */
+function download(name, blob){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+async function shareOrDownload(name, blob){
+  const file = new File([blob], name, {type: blob.type});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:name}); return true; }catch(e){ if(e.name==="AbortError") return false; }
+  }
+  download(name, blob); return true;
+}
+$("#btn-csv").addEventListener("click", ()=>{
+  const head="data;combustivel;preco_l;litros;total;hodometro;tanque_cheio;media_painel;trajeto\n";
+  const rows=sorted().map(x=>[x.date,x.fuel,x.price,x.liters,x.total,x.odo,x.full?1:0,x.panel??"",x.trip??""].join(";").replace(/\./g,",")).join("\n");
+  shareOrDownload("abastecimentos.csv", new Blob(["\ufeff"+head+rows],{type:"text/csv"}));
+});
+$("#btn-backup").addEventListener("click", async ()=>{
+  const ok = await shareOrDownload(`backup-consumo-${today()}.json`, new Blob([JSON.stringify(state)],{type:"application/json"}));
+  if(ok){ try{ localStorage.setItem("consumo-carro-backup", new Date().toISOString()); }catch(e){} backupNag(); }
+});
+$("#btn-restore").addEventListener("click", ()=>$("#file-restore").click());
+$("#file-restore").addEventListener("change", async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const d=JSON.parse(await file.text());
+    if(!d || !Array.isArray(d.fills)) throw 0;
+    if(!confirm(`Restaurar ${d.fills.length} abastecimento(s)? Isso substitui o que está neste celular.`)) return;
+    state={fills:d.fills}; render(); await persist(); setStatus("Backup restaurado.");
+  }catch(err){ alert("Arquivo inválido. Use um backup .json gerado por este app."); }
+  e.target.value="";
+});
+
+/* ---------- navegação ---------- */
+function go(v){
+  ["painel","abastecer","historico"].forEach(k=>$("#v-"+k).hidden = k!==v);
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current", b.dataset.view===v?"page":"false"));
+  if(v==="abastecer") prefillOdoHint();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
+})();
+</script>
+<script>
+if("serviceWorker" in navigator){ addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+</script>
+</body>
+</html>
